@@ -14,13 +14,13 @@ namespace fs = std::filesystem;
 class IOManager
 {
 public:
-    // === Directory Setup ===
+    // Directory Setup
     // Creates the .minigit directory structure
     static bool initMinigitDir();
     // Creates a directory at the given path (including parents)
     static bool createDir(const string &path);
 
-    // === File Operations ===
+    // File Operations
     // Reads the entire contents of a file into a string
     static string readFile(const string &path);
     // Writes the given content to a file, overwriting if it exists
@@ -30,13 +30,13 @@ public:
     // Checks if a file or directory exists at the path
     static bool fileExists(const string &path);
 
-    // === Blob Storage ===
+    // Blob Storage 
     // Writes content as a blob in objects/ and returns its SHA-1 hash
     static string writeBlob(const string &content);
     // Reads a blob's content by its hash
     static string readBlob(const string &hash);
 
-    // === Commit Metadata ===
+    // Commit Metadata 
     // Writes commit data (parent, tree, timestamp, message) under objects/
     static bool writeCommit(const string &hash, const string &data);
     // Reads commit data by its hash
