@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <sstream>
 #include <chrono>
+using ::writeBlob;
 
 namespace fs = std::filesystem;
 
@@ -50,9 +51,6 @@ std::string VCS::getFileContent(const std::string& filepath) {
 }
 
 
-bool VCS::writeBlob(const std::string& hash, const std::string& content) {
-    return writeBlobToStorage(hash, content); 
-} 
 
 
 bool VCS::updateIndex(const std::string& filename, const std::string& hash) {
