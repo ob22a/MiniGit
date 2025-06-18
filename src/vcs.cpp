@@ -100,14 +100,14 @@ bool VCS::add(const std::string& filename) {
 bool VCS::commit(const std::string& message) {
     std::ifstream index(".minigit/index");
     if (!index) {
-        std::cerr << "Error: Could not open index.\n";
+        std::cerr << " Couldn't open index.\n";
         return false;
     }
 
     std::string stagedContent((std::istreambuf_iterator<char>(index)),
                               std::istreambuf_iterator<char>());
     if (stagedContent.empty()) {
-        std::cerr << "Nothing to commit.\n";
+        std::cerr << "there is Nothing to commit.\n";
         return false;
     }
 
