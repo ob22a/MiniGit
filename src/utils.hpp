@@ -6,11 +6,12 @@
 
 namespace utils {
 
-    std::string runCommand(const std::string& command);
-    std::vector<std::string> diffCommits(const std::string& commit1, const std::string& commit2);
+    std::string readFile(const std::string& filepath);
+    std::vector<std::string> simulateDiff(const std::string& file1, const std::string& file2);
     std::string trim(const std::string& str);
     void log(const std::string& message);
 }
 
 #endif // UTILS_HPP
+
 
