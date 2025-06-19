@@ -1,47 +1,64 @@
 #include "utils.hpp"
-#include <cstdlib>
+#include <fstream>
 #include <sstream>
 #include <iostream>
 #include <algorithm>
-#include <iterator>
 
 namespace utils {
 
-    std::string runCommand(const std::string& command) {
-        std::string result;
-        char buffer[128];
-        FILE* pipe = popen(command.c_str(), "r");
-        if (!pipe) return "ERROR";
-        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-            result += buffer;
+    std::string readFile(const std::string& filepath) {
+        std::ifstream file(filepath);
+        std::stringstream buffer;
+        if (file) {
+            buffer << file.rdbuf();
+            file.close();
+        } else {
+            return "";
         }
-        pclose(pipe);
+        return buffer.str();
+    }
+
+    std::vector<std::string> simulateDiff(const std::string& file1, const std::string& file2) {
+        std::vector<std::string> result;
+
+        std::string content1 = readFile(file1);
+        std::string content2 = readFile(file2);
+
+        std::istringstream stream1(content1);
+        std::istringstream stream2(content2);
+
+        std::string line1, line2;
+        int lineNum = 1;
+
+        while (std::getline(stream1, line1) && std::getline(stream2, line2)) {
+            if (line1 != line2) {
+                result.push_back("Line " + std::to_string(lineNum) + " differs");
+            }
+            lineNum++;
+        }
+
+        while (std::getline(stream1, line1)) {
+            result.push_back("Line " + std::to_string(lineNum) + " only in file1");
+            lineNum++;
+        }
+
+        while (std::getline(stream2, line2)) {
+            result.push_back("Line " + std::to_string(lineNum) + " only in file2");
+            lineNum++;
+        }
+
         return result;
     }
 
-    std::vector<std::string> diffCommits(const std::string& commit1, const std::string& commit2) {
-        std::string command = "git diff --name-only " + commit1 + " " + commit2;
-        std::string output = runCommand(command);
-        std::istringstream stream(output);
-        std::vector<std::string> files;
-        std::string line;
-
-        while (std::getline(stream, line)) {
-            files.push_back(trim(line));
-        }
-
-        return files;
-    }
-
     std::string trim(const std::string& str) {
-        size_t first = str.find_first_not_of(" \t\n\r");
-        if (first == std::string::npos) return "";
-        size_t last = str.find_last_not_of(" \t\n\r");
-        return str.substr(first, last - first + 1);
+        size_t start = str.find_first_not_of(" \t\n\r");
+        size_t end = str.find_last_not_of(" \t\n\r");
+        return (start == std::string::npos) ? "" : str.substr(start, end - start + 1);
     }
 
     void log(const std::string& message) {
-        std::cerr << "[UTILS LOG] " << message << std::endl;
+        std::cerr << "[LOG] " << message << std::endl;
     }
 }
+
 
