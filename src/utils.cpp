@@ -1,54 +1,9 @@
 #include "utils.hpp"
-#include <fstream>
-#include <sstream>
 #include <iostream>
+#include <sstream>
 #include <algorithm>
 
 namespace utils {
-
-    std::string readFile(const std::string& filepath) {
-        std::ifstream file(filepath);
-        std::stringstream buffer;
-        if (file) {
-            buffer << file.rdbuf();
-            file.close();
-        } else {
-            return "";
-        }
-        return buffer.str();
-    }
-
-    std::vector<std::string> simulateDiff(const std::string& file1, const std::string& file2) {
-        std::vector<std::string> result;
-
-        std::string content1 = readFile(file1);
-        std::string content2 = readFile(file2);
-
-        std::istringstream stream1(content1);
-        std::istringstream stream2(content2);
-
-        std::string line1, line2;
-        int lineNum = 1;
-
-        while (std::getline(stream1, line1) && std::getline(stream2, line2)) {
-            if (line1 != line2) {
-                result.push_back("Line " + std::to_string(lineNum) + " differs");
-            }
-            lineNum++;
-        }
-
-        while (std::getline(stream1, line1)) {
-            result.push_back("Line " + std::to_string(lineNum) + " only in file1");
-            lineNum++;
-        }
-
-        while (std::getline(stream2, line2)) {
-            result.push_back("Line " + std::to_string(lineNum) + " only in file2");
-            lineNum++;
-        }
-
-        return result;
-    }
 
     std::string trim(const std::string& str) {
         size_t start = str.find_first_not_of(" \t\n\r");
@@ -59,6 +14,34 @@ namespace utils {
     void log(const std::string& message) {
         std::cerr << "[LOG] " << message << std::endl;
     }
+
+    void showDiff(const std::string& content1, const std::string& content2,
+                  const std::string& label1, const std::string& label2) {
+        std::istringstream stream1(content1);
+        std::istringstream stream2(content2);
+
+        std::string line1, line2;
+        std::vector<std::string> lines1, lines2;
+
+        while (std::getline(stream1, line1)) lines1.push_back(line1);
+        while (std::getline(stream2, line2)) lines2.push_back(line2);
+
+        size_t maxLines = std::max(lines1.size(), lines2.size());
+
+        std::cout << " Diff between " << label1 << " and " << label2 << ":\n\n";
+
+        for (size_t i = 0; i < maxLines; ++i) {
+            std::string l1 = (i < lines1.size()) ? lines1[i] : "";
+            std::string l2 = (i < lines2.size()) ? lines2[i] : "";
+
+            if (l1 != l2) {
+                std::cout << "\033[1;31m- " << l1 << "\033[0m\n"; // red
+                std::cout << "\033[1;32m+ " << l2 << "\033[0m\n"; // green
+            }
+        }
+    }
 }
+
+
 
 
