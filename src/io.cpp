@@ -1,7 +1,10 @@
 #include "io.hpp"
+#include "dsa.hpp"
+#include "utils.hpp"
 #include <fstream>
 #include <sstream>
-#include <openssl/sha.h>
+#include<filesystem>
+#include<string>
 #include <iostream>
 #include <ctime>
 
@@ -13,24 +16,26 @@ namespace fs = filesystem;
 bool IOManager::initMinigitDir() {
     try {
         // Create repository structure
-        create_directory(".minigit");
-        create_directory(".minigit/objects");
-        create_directory(".minigit/refs");
-        create_directory(".minigit/refs/heads");
+        fs::create_directory(MINIGIT_DIR);
+        fs::create_directory(OBJECTS_DIR);
+        fs::create_directories(COMMITS_DIR);
+        fs::create_directories(REFS_HEADS_DIR);
+
+        writeReference("main","");
 
         // Initialize key files
-        writeFile(".minigit/HEAD", "ref: refs/heads/main");
-        writeFile(".minigit/index", "");
+        writeFile(HEAD_FILE, "ref: refs/heads/main\n");
+        writeFile(INDEX_FILE, "");
 
         return true;
     } catch (const exception &e) {
-        cerr << "Error initializing repository: " << e.what() << endl;
+        utils::displayError(string("Error initializing repository: ")+e.what());
         return false;
     }
 }
 
 bool IOManager::createDir(const string &path) {
-    return create_directories(path);
+    return fs::create_directories(path);
 }
 
 // File Operations
@@ -38,7 +43,8 @@ bool IOManager::createDir(const string &path) {
 string IOManager::readFile(const string &path) {
     ifstream file(path, ios::binary);
     if (!file) {
-        throw runtime_error("Cannot open file: " + path);
+        utils::displayError(string("Cannot open file ")+path);
+        return "";
     }
     
     return string(istreambuf_iterator<char>(file), 
@@ -48,7 +54,7 @@ string IOManager::readFile(const string &path) {
 bool IOManager::writeFile(const string &path, const string &content) {
     ofstream file(path, ios::binary);
     if (!file) {
-        cerr << "Error writing to: " << path << endl;
+        utils::displayError(string("Error writing to: ")+path);
         return false;
     }
     
@@ -58,64 +64,75 @@ bool IOManager::writeFile(const string &path, const string &content) {
 
 bool IOManager::copyFile(const string &src, const string &dest) {
     try {
-        copy_file(src, dest, fs::copy_options::overwrite_existing);
+        fs::copy_file(src, dest, fs::copy_options::overwrite_existing);
         return true;
     } catch (const exception &e) {
-        cerr << "Copy failed: " << e.what() << endl;
+        utils::displayError(string("Copy failed: ")+e.what());
         return false;
     }
 }
 
 bool IOManager::fileExists(const string &path) {
-    return exists(path);
+    return fs::exists(path);
 }
 
 
 // Blob Storage
 string IOManager::writeBlob(const string &content) {
-    const string hash = computeSHA1(content);
-    const string path = ".minigit/objects/" + hash;
+    const string hash = dsa::computeSHA1(content);
+    const string dir = OBJECTS_DIR + "/" + hash.substr(0,2);
+    const string path = dir + "/" + hash.substr(2);
 
-    if (!fileExists(path) && !writeFile(path, content)) {
-        throw runtime_error("Failed to write blob: " + hash);
-    }
+    if(!fileExists(path)) createDir(dir);
+    writeFile(path,content);
+
     return hash;
 }
 
 string IOManager::readBlob(const string &hash) {
-    return readFile(".minigit/objects/" + hash);
+    return readFile(OBJECTS_DIR + "/" + hash.substr(0,2) +"/"+hash.substr(2));
 }
 
 // Commit Metadata
 
 bool IOManager::writeCommit(const string &hash, const string &data) {
-    return writeFile(".minigit/objects/" + hash, data);
+    return writeFile(COMMITS_DIR + "/" + hash, data);
 }
 
 string IOManager::readCommit(const string &hash) {
-    return readBlob(hash);
+    return readFile(COMMITS_DIR + "/" + hash);
 }
 
 // Reference Management
 
 bool IOManager::writeReference(const string &refName, const string &hash) {
     if (refName == "HEAD") {
-        return writeFile(".minigit/HEAD", hash);
+        return writeFile(HEAD_FILE, hash);
     }
-    return writeFile(".minigit/refs/heads/" + refName, hash);
+    return writeFile(REFS_HEADS_DIR + "/" + refName, hash);
 }
 
 string IOManager::readReference(const string &refName) {
     if (refName == "HEAD") {
-        string headRef = readFile(".minigit/HEAD");
+        string headRef = readFile(HEAD_FILE);
         if (headRef.find("ref: ") == 0) {
-            // Resolve symbolic reference
-            string branchPath = headRef.substr(5);
-            return readFile(".minigit/" + branchPath);
+            // Trim the symbolic reference to remove any extra whitespace or newlines.
+            string branchPath = utils::trim(headRef.substr(5));
+            // Use MINIGIT_DIR constant so the path becomes ".minigit/refs/heads/main"
+            return readFile(MINIGIT_DIR + "/" + branchPath);
         }
         return headRef;  // Detached HEAD mode
     }
-    return readFile(".minigit/refs/heads/" + refName);
+    return readFile(REFS_HEADS_DIR + "/" + refName);
+}
+
+std::string IOManager::resolveHEAD() {
+    std::string headContent = readFile(HEAD_FILE);
+    if (headContent.rfind("ref:", 0) == 0) {
+        std::string refPath = utils::trim(headContent.substr(5)); // trim any extra whitespace/newlines
+        return readFile(MINIGIT_DIR + "/" + refPath);
+    }
+    return headContent; // detached mode
 }
 
 // Staging Area (Index)
@@ -125,18 +142,19 @@ bool IOManager::updateIndex(const vector<pair<string, string>> &entries) {
     for (const auto &[filename, hash] : entries) {
         content << filename << ":" << hash << "\n";
     }
-    return writeFile(".minigit/index", content.str());
+    return writeFile(INDEX_FILE, content.str());
 }
+
 
 vector<pair<string, string>> IOManager::readIndex() {
     vector<pair<string, string>> entries;
     
-    if (!fileExists(".minigit/index")) {
+    if (!fileExists(INDEX_FILE)) {
         return entries;  // Empty staging area
     }
 
     try {
-        string indexContent = readFile(".minigit/index");
+        string indexContent = readFile(INDEX_FILE);
         istringstream iss(indexContent);
         string line;
         
@@ -150,7 +168,8 @@ vector<pair<string, string>> IOManager::readIndex() {
             }
         }
     } catch (...) {
-        // Return empty index on error
+        utils::displayError("Error reading index file.");
+        return entries;
     }
     
     return entries;
