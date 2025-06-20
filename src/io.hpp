@@ -6,7 +6,6 @@
 #include <utility>
 #include <fstream>
 #include <sstream>
-#include <openssl/sha.h>
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -15,6 +14,15 @@ class IOManager
 {
 public:
     // Directory Setup
+    
+    //Constants
+    inline static const std::string MINIGIT_DIR = ".minigit";
+    inline static const std::string OBJECTS_DIR = MINIGIT_DIR + "/objects";
+    inline static const std::string COMMITS_DIR = MINIGIT_DIR + "/commits";
+    inline static const std::string REFS_HEADS_DIR = MINIGIT_DIR + "/refs/heads";
+    inline static const std::string HEAD_FILE = MINIGIT_DIR + "/HEAD";
+    inline static const std::string INDEX_FILE = MINIGIT_DIR + "/index";
+
     // Creates the .minigit directory structure
     static bool initMinigitDir();
     // Creates a directory at the given path (including parents)
@@ -47,6 +55,8 @@ public:
     static bool writeReference(const string &refName, const string &hash);
     // Reads a branch or HEAD reference from refs/heads/
     static string readReference(const string &refName);
+    //Gets Head information 
+    static std::string resolveHEAD();
 
     // Staging Area (Index)
     // Saves the staging entries (filename: hash pairs) to .minigit/index
@@ -54,4 +64,3 @@ public:
     // Loads staging entries from .minigit/index into a vector of pairs
     static vector<pair<string, string>> readIndex();
 };
-
