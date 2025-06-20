@@ -1,7 +1,12 @@
+utils.cpp
+
 #include "utils.hpp"
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <vector>
+#include <string>
+#include <iomanip>
 
 namespace utils {
 
@@ -11,8 +16,8 @@ namespace utils {
         return (start == std::string::npos) ? "" : str.substr(start, end - start + 1);
     }
 
-    void log(const std::string& message) {
-        std::cerr << "[LOG] " << message << std::endl;
+    void displayError(const std::string& message) {
+        std::cerr << message << std::endl;
     }
 
     void showDiff(const std::string& content1, const std::string& content2,
@@ -35,8 +40,8 @@ namespace utils {
             std::string l2 = (i < lines2.size()) ? lines2[i] : "";
 
             if (l1 != l2) {
-                std::cout << "\033[1;31m- " << l1 << "\033[0m\n"; // red
-                std::cout << "\033[1;32m+ " << l2 << "\033[0m\n"; // green
+                std::cout << "\033[1;31m- " << i + 1 << "    " << l1 << "\033[0m\n"; // red
+                std::cout << "\033[1;32m+ " << i + 1 << "    " << l2 << "\033[0m\n"; // green
             }
         }
     }
