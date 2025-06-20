@@ -1,5 +1,3 @@
-utils.cpp
-
 #include "utils.hpp"
 #include <iostream>
 #include <sstream>
